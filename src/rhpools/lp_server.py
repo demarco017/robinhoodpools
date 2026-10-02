@@ -291,13 +291,22 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "public,max-age=60" if path.startswith("/static/") else "no-store")
         self.send_header("Vary", "Accept-Encoding")
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("X-Frame-Options", "SAMEORIGIN" if path == "/pool" else "DENY")
+        origins = self.runtime.origins
+        if origins:
+            frame_ancestors = " ".join(f"'{o}'" for o in sorted(origins))
+            if path == "/pool":
+                frame_ancestors = "'self' " + frame_ancestors
+            x_frame = "SAMEORIGIN"
+        else:
+            frame_ancestors = "'self'" if path == "/pool" else "'none'"
+            x_frame = "SAMEORIGIN" if path == "/pool" else "DENY"
+        self.send_header("X-Frame-Options", x_frame)
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header(
             "Content-Security-Policy",
             "default-src 'self';script-src 'self';style-src 'self' 'unsafe-inline';"
             "img-src 'self' data:;connect-src 'self';object-src 'none';base-uri 'none';"
-            "frame-ancestors " + ("'self'" if path == "/pool" else "'none'"),
+            "frame-ancestors " + frame_ancestors,
         )
         if path.startswith("/api/"):
             self.send_header("Access-Control-Allow-Origin", "*")

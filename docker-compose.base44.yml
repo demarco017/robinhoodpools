@@ -1,0 +1,27 @@
+services:
+  app:
+    image: python:3.12-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+      - rhpools_data:/data
+    environment:
+      - RHP_HTTP_HOST=0.0.0.0
+      - RHP_HTTP_PORT=8196
+      - RHP_DATA_DIR=/data
+      - RHP_DATABASE=/data/lp_market.sqlite
+      - PYTHONUNBUFFERED=1
+      - BASE44_PUBLIC_HOST_SUFFIX=${BASE44_PUBLIC_HOST_SUFFIX}
+    ports:
+      - "3000:8196"
+    command: ["sh", "-ec", "pip install --quiet uv && uv sync --locked --extra test && exec uv run rhpools --public-origin https://3000-$${BASE44_PUBLIC_HOST_SUFFIX}"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8196/', timeout=5)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+    restart: on-failure
+
+volumes:
+  rhpools_data:
