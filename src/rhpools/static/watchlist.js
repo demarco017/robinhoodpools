@@ -6,6 +6,7 @@
   const REQUEST_TIMEOUT_MS = 15_000;
   const ADDRESS_RE = /^0x[0-9a-f]{40}$/;
   const ACTIVITY_LIMIT = 50;
+  const REFRESH_INTERVAL_MS = 15_000;
 
   const byId = (id) => document.getElementById(id);
   const elements = {
@@ -16,6 +17,8 @@
     cards: byId("wl-cards"),
     empty: byId("wl-empty"),
     copyStatus: byId("wl-copy-status"),
+    liveStatus: byId("wl-live-status"),
+    liveText: byId("wl-live-text"),
   };
 
   const cardState = new Map(); // address -> { loading, error, activity, summary, expanded }
@@ -109,6 +112,10 @@
         () => { elements.copyStatus.textContent = "Copy failed"; },
       );
     } catch (_) { /* clipboard may be unavailable */ }
+  }
+
+  function rowKey(row) {
+    return `${row.tx_hash || ""}:${row.block_number || ""}:${row.log_index || ""}:${row.kind || ""}`;
   }
 
   async function api(path, params, signal) {
@@ -263,12 +270,13 @@
     }
   }
 
-  function renderActivityTable(body, rows) {
+  function renderActivityTable(body, rows, newKeys) {
     body.replaceChildren();
     if (!rows || !rows.length) {
       body.append(el("div", "wl-card-loading", "No indexed activity for this wallet."));
       return;
     }
+    const newSet = newKeys instanceof Set ? newKeys : null;
     const wrap = el("div", "wl-activity-table-wrap");
     const table = el("table", "wl-activity-table");
     const thead = el("thead");
@@ -282,7 +290,8 @@
     const tbody = el("tbody");
     for (const row of rows) {
       const kind = String(row.kind || "unknown").toLowerCase();
-      const tr = el("tr", `event-${kind}`);
+      const isNew = newSet && newSet.has(rowKey(row));
+      const tr = el("tr", `event-${kind}${isNew ? " wl-new-row" : ""}`);
       const d = toDate(row.timestamp);
       const age = d ? formatAge(Math.max(0, (Date.now() - d.getTime()) / 1000)) : "—";
       tr.append(
@@ -324,13 +333,16 @@
     body.append(el("div", "wl-activity-footer", `${rows.length} events shown · window: all history`));
   }
 
-  async function loadCardData(address, card, body) {
+  async function loadCardData(address, card, body, { silent = false } = {}) {
     const state = cardState.get(address);
     if (state && state.loading) return;
-    const entry = { loading: true, error: null, activity: null, summary: null, expanded: true };
+    const prevRows = (state && state.activityRows) || [];
+    const entry = { loading: true, error: null, activity: state && state.activity || null, summary: state && state.summary || null, expanded: true, activityRows: prevRows };
     cardState.set(address, entry);
 
-    body.replaceChildren(el("div", "wl-card-loading", "Loading activity…"));
+    if (!silent) {
+      body.replaceChildren(el("div", "wl-card-loading", "Loading activity…"));
+    }
 
     try {
       const [ownerData, tapeData] = await Promise.all([
@@ -348,11 +360,22 @@
       entry.activityRows = rows;
 
       updateCardStats(card, summary, activity);
-      renderActivityTable(body, rows);
+
+      if (silent) {
+        const prevKeys = new Set(prevRows.map(rowKey));
+        const newKeys = new Set(rows.map(rowKey).filter((k) => !prevKeys.has(k)));
+        if (newKeys.size > 0 || rows.length !== prevRows.length) {
+          renderActivityTable(body, rows, newKeys);
+        }
+      } else {
+        renderActivityTable(body, rows);
+      }
     } catch (error) {
       entry.loading = false;
       entry.error = error.message || "Failed to load";
-      body.replaceChildren(el("div", "wl-card-error", `ERROR · ${entry.error}`));
+      if (!silent) {
+        body.replaceChildren(el("div", "wl-card-error", `ERROR · ${entry.error}`));
+      }
     }
   }
 
@@ -477,6 +500,47 @@
     prevAddresses = current;
   }
 
+  // Live polling — continuously pull on-chain data for watched wallets
+  let lastRefreshAt = 0;
+  function updateLiveStatus() {
+    const count = window.__watchlist.list().length;
+    if (count === 0) {
+      elements.liveStatus.classList.remove("is-live");
+      elements.liveText.textContent = "Add a wallet to start live tracking";
+      return;
+    }
+    if (!lastRefreshAt) {
+      elements.liveStatus.classList.add("is-live");
+      elements.liveText.textContent = `LIVE · ${count} wallet${count > 1 ? "s" : ""} · connecting…`;
+      return;
+    }
+    const age = Math.round((Date.now() - lastRefreshAt) / 1000);
+    elements.liveStatus.classList.add("is-live");
+    elements.liveText.textContent = `LIVE · ${count} wallet${count > 1 ? "s" : ""} · updated ${age}s ago`;
+  }
+
+  function refreshAllExpanded() {
+    const cards = document.querySelectorAll(".wl-card.is-expanded");
+    let refreshed = 0;
+    for (const card of cards) {
+      const addr = card.dataset.address;
+      const body = card.querySelector(".wl-card-body");
+      if (body && !body.hidden) {
+        loadCardData(addr, card, body, { silent: true });
+        refreshed++;
+      }
+    }
+    if (refreshed > 0) lastRefreshAt = Date.now();
+    updateLiveStatus();
+  }
+
+  function startLivePolling() {
+    lastRefreshAt = Date.now();
+    updateLiveStatus();
+    setInterval(refreshAllExpanded, REFRESH_INTERVAL_MS);
+    setInterval(updateLiveStatus, 1000);
+  }
+
   // Init
   elements.addForm.addEventListener("submit", handleAdd);
   document.addEventListener("click", handleClick);
@@ -495,4 +559,6 @@
       loadCardData(entry.address, card, body);
     }
   }
+  // Start continuous live polling
+  startLivePolling();
 })();

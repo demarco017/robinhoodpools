@@ -27,6 +27,10 @@
     <section class="wl-add-section">
       <h1>WALLET WATCHLIST</h1>
       <p class="wl-description">Track specific wallets and see all their on-chain activity — LP events, swaps, transfers — with live highlighting in the terminal feed.</p>
+      <div id="wl-live-status" class="wl-live-status">
+        <span class="wl-live-dot"></span>
+        <span id="wl-live-text">Connecting to chain…</span>
+      </div>
       <form id="wl-add-form" class="wl-add-form" autocomplete="off">
         <label class="wl-add-label" for="wl-add-input">ADD&gt;</label>
         <input id="wl-add-input" type="search" enterkeyhint="done" autocomplete="off" spellcheck="false" placeholder="Paste a 0x wallet address" aria-label="Wallet address to watch">
