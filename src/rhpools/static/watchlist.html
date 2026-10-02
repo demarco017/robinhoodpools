@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#000000">
+  <title>Robinhood Pools / Watchlist</title>
+  <link rel="stylesheet" href="/static/watchlist.css">
+</head>
+<body>
+  <header class="wl-header">
+    <div class="wl-header-strip">
+      <strong class="wl-brand">ROBINHOOD POOLS</strong>
+      <span class="wl-chain">4663</span>
+      <span class="wl-context">WATCHLIST</span>
+      <nav class="wl-nav">
+        <a href="/">TERMINAL</a>
+        <a href="/guide">GUIDE</a>
+        <a href="/research">RESEARCH</a>
+        <a href="/flow">FLOW</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wl-main">
+    <section class="wl-add-section">
+      <h1>WALLET WATCHLIST</h1>
+      <p class="wl-description">Track specific wallets and see all their on-chain activity — LP events, swaps, transfers — with live highlighting in the terminal feed.</p>
+      <form id="wl-add-form" class="wl-add-form" autocomplete="off">
+        <label class="wl-add-label" for="wl-add-input">ADD&gt;</label>
+        <input id="wl-add-input" type="search" enterkeyhint="done" autocomplete="off" spellcheck="false" placeholder="Paste a 0x wallet address" aria-label="Wallet address to watch">
+        <input id="wl-add-label-input" type="text" maxlength="40" placeholder="label (optional)" aria-label="Optional label for this wallet">
+        <button type="submit">WATCH</button>
+      </form>
+      <div id="wl-add-status" class="wl-add-status" role="status" aria-live="polite"></div>
+    </section>
+
+    <section id="wl-list" class="wl-list" aria-label="Watched wallets">
+      <div id="wl-empty" class="wl-empty" hidden>
+        <p>No wallets tracked yet — search for a wallet in the <a href="/">terminal</a> and click watch to add it.</p>
+      </div>
+      <div id="wl-cards"></div>
+    </section>
+  </main>
+
+  <div id="wl-copy-status" class="sr-only" role="status" aria-live="polite"></div>
+  <script src="/static/watchlist_shared.js" defer></script>
+  <script src="/static/watchlist.js" defer></script>
+</body>
+</html>

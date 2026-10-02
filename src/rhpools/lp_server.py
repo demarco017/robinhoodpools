@@ -30,12 +30,14 @@ _ASSETS = {
     "/guide": ("lp_guide.html", "text/html; charset=utf-8"),
     "/research": ("lp_research.html", "text/html; charset=utf-8"),
     "/flow": ("lp_flow.html", "text/html; charset=utf-8"),
+    "/watchlist": ("watchlist.html", "text/html; charset=utf-8"),
     "/api/v1/openapi.json": ("openapi.json", "application/json; charset=utf-8"),
 }
 for _name in (
     "lp_theme.css", "lp_terminal.css", "lp_terminal.js", "lp_panes_boot.js",
     "workbench.css", "workbench.js", "lp_guide.css",
     "lp_research.css", "lp_research.js", "lp_flow.css", "lp_flow.js",
+    "watchlist.css", "watchlist.js", "watchlist_shared.js",
 ):
     _ASSETS["/static/" + _name] = (
         _name,

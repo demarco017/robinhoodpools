@@ -458,6 +458,40 @@ select:focus { border-color: var(--text); color: var(--text); }
 .badge.custody { border-color: #763d76; color: var(--magenta); }
 .badge.live { border-color: #19647a; color: var(--cyan); }
 .row-link { color: var(--cyan); }
+
+/* watch toggle */
+.watch-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
+  border: 1px solid var(--line);
+  background: none;
+  color: var(--dim);
+  font-size: 11px;
+  line-height: 1;
+  padding: 1px 4px;
+  margin-left: 4px;
+  border-radius: 0;
+  vertical-align: baseline;
+  cursor: pointer;
+}
+.watch-toggle:hover { border-color: var(--cyan); color: var(--cyan); }
+.watch-toggle.is-active { border-color: var(--cyan); color: var(--cyan); background: rgba(95,215,255,.08); }
+.watch-toggle.is-active:hover { background: rgba(95,215,255,.15); }
+#owner-watch { margin-left: 0; padding: 2px 6px; font-size: 12px; }
+.search-watch { margin-left: 6px; font-size: 10px; padding: 0 3px; }
+.owner-cell { display: flex; align-items: center; gap: 0; }
+
+/* watched-event highlight in the live feed */
+.watched-event { border-left: 2px solid var(--cyan); }
+.watched-event td:first-child::before {
+  content: "WATCHED ";
+  color: var(--cyan);
+  font-size: 9px;
+  font-weight: 700;
+  margin-right: 2px;
+}
 .owner-activity-age { color: var(--dim); }
 .owner-activity-age.is-live { color: var(--cyan); }
 .owner-activity-age.is-ledger { color: var(--yellow); }

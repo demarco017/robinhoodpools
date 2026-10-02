@@ -80,6 +80,7 @@
     ownerCurve: byId("owner-curve"),
     ownerCurveNote: byId("owner-curve-note"),
     ownerFollow: byId("owner-follow"),
+    ownerWatch: byId("owner-watch"),
     ownerLiveState: byId("owner-live-state"),
     copyStatus: byId("copy-status"),
     terminalMain: byId("terminal-main"),
@@ -585,6 +586,20 @@
     return `/lp?${new URLSearchParams({ owner: String(address), window: state.window }).toString()}`;
   }
 
+  function watchButton(address) {
+    const norm = String(address || "").toLowerCase();
+    if (!ADDRESS_RE.test(norm)) return null;
+    const watched = !!(window.__watchlist && window.__watchlist.has(norm));
+    const button = el("button", `watch-toggle${watched ? " is-active" : ""}`);
+    button.type = "button";
+    button.textContent = "👁";
+    button.dataset.watch = norm;
+    button.title = watched ? `Unwatch ${norm}` : `Watch ${norm}`;
+    button.setAttribute("aria-label", watched ? `Unwatch ${norm}` : `Watch ${norm}`);
+    button.setAttribute("aria-pressed", String(watched));
+    return button;
+  }
+
   function ownerNodes(row, copyOnClick = true) {
     const address = String(row && (row.owner || row.custody) || "");
     if (!address) return [el("span", "dim", "—")];
@@ -660,6 +675,13 @@
         el("span", "search-open", ">"),
         el("span", "search-subtitle", row.subtitle || row.id)
       );
+      if (["owner", "custody"].includes(row.kind) && ADDRESS_RE.test(row.id)) {
+        const btn = watchButton(row.id.toLowerCase());
+        if (btn) {
+          btn.classList.add("search-watch");
+          link.append(btn);
+        }
+      }
       elements.lpSearchResults.append(link);
     }
     elements.lpSearchStatus.className = "lp-search-status";
@@ -836,7 +858,8 @@
 
   function patchTapeRow(row, item) {
     const kind = String(item.kind || "unknown").toLowerCase();
-    row.className = `event-${kind}`;
+    const watched = !!(window.__watchlist && (window.__watchlist.has(item.owner) || window.__watchlist.has(item.custody)));
+    row.className = `event-${kind}${watched ? " watched-event" : ""}`;
     const cells = row.cells;
     const eventTime = eventTimeLabel(item);
     setTextCell(cells[0], eventTime.text, "dim", eventTime.title);
@@ -942,7 +965,14 @@
     const activity = item.activity || {};
     const kind = String(activity.kind || "").toLowerCase();
     row.className = `event-${kind}${currentOnly ? " owner-current-only" : ""}`;
-    setNodeCell(cells[0], `${item.owner || ""}|${item.custody || ""}`, "cyan", () => ownerNodes(item, false));
+    const watchedKey = (item.owner || item.custody || "").toLowerCase();
+    const isWatched = !!(window.__watchlist && window.__watchlist.has(watchedKey));
+    setNodeCell(cells[0], `${item.owner || ""}|${item.custody || ""}|${isWatched ? "w" : ""}`, "cyan owner-cell", () => {
+      const nodes = ownerNodes(item, false);
+      const btn = watchButton(item.owner || item.custody);
+      if (btn) nodes.push(btn);
+      return nodes;
+    });
     const action = { add: "ADD LIQUIDITY", remove: "REMOVE LIQUIDITY", collect: "COLLECT", checkpoint: "FEE CHECKPOINT", transfer: "TRANSFER", donate: "DONATE", fee: "FEE UPDATE" }[kind] || (kind ? kind.toUpperCase() : "UNKNOWN");
     setTextCell(cells[1], action, "event-kind", ownerActivityAgeView(activity).title);
     const poolId = activity.pool_id || "";
@@ -2587,6 +2617,22 @@
     }
   }
 
+  function updateModalWatchButton(address) {
+    const btn = elements.ownerWatch;
+    if (!btn) return;
+    const watched = !!(window.__watchlist && window.__watchlist.has(address));
+    btn.classList.toggle("is-active", watched);
+    btn.setAttribute("aria-pressed", String(watched));
+    btn.title = watched ? `Unwatch ${address}` : `Watch ${address}`;
+  }
+
+  function onWatchlistChange() {
+    state.ownerViewCache.clear();
+    scheduleRender("tape", renderTape);
+    scheduleRender("owners", renderOwners);
+    if (state.ownerAddress) updateModalWatchButton(state.ownerAddress);
+  }
+
   function openOwner(address, trigger, historyMode = "push") {
     const normalized = String(address || "").trim().toLowerCase();
     if (!ADDRESS_RE.test(normalized)) return;
@@ -2601,6 +2647,7 @@
     elements.context.textContent = `LP ${shortIdentifier(normalized, 7, 5)}`;
     elements.context.title = normalized;
     elements.modalAddress.replaceChildren(copyButton(normalized, normalized));
+    updateModalWatchButton(normalized);
     elements.lpSearchInput.value = normalized;
     elements.lpSearchResults.replaceChildren();
     elements.lpSearchStatus.className = "lp-search-status";
@@ -3048,6 +3095,18 @@
 
   document.addEventListener("click", (event) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const watchBtn = event.target.closest && event.target.closest("[data-watch]");
+    if (watchBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      const address = watchBtn.dataset.watch;
+      const added = window.__watchlist.toggle(address);
+      watchBtn.classList.toggle("is-active", added);
+      watchBtn.setAttribute("aria-pressed", String(added));
+      watchBtn.title = added ? `Unwatch ${address}` : `Watch ${address}`;
+      onWatchlistChange();
+      return;
+    }
     const copy = event.target.closest && event.target.closest("[data-copy]");
     if (copy && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
       event.preventDefault();
@@ -3281,6 +3340,7 @@
   setFollow(true);
   setOwnerFollow(true);
   setTab("pools", false, false);
+  if (window.__watchlist) window.__watchlist.onChange(onWatchlistChange);
   applyPaneLayout();
   renderStatus();
   renderOverview();

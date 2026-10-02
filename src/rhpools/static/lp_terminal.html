@@ -49,6 +49,7 @@
       <a href="#tape-section">FEED</a>
       <a href="#owners-section">WALLETS</a>
       <a href="#pools-section">POOLS</a>
+      <a href="/watchlist">WATCHLIST</a>
       <a href="/guide">GUIDE</a>
       <a href="/research">RESEARCH</a>
       <a href="/flow">FLOW</a>
@@ -95,6 +96,7 @@
           </div>
           <div class="owner-detail-controls">
             <span id="owner-live-state" class="owner-live-state is-stale" role="status">SYNCING</span>
+            <button id="owner-watch" class="watch-toggle" type="button" aria-pressed="false" title="Watch this wallet">👁</button>
             <button id="owner-follow" class="owner-follow is-active" type="button" aria-pressed="true">FOLLOW ON</button>
             <button id="owner-close" class="owner-close" type="button" aria-label="Close LP detail">CLOSE</button>
           </div>
@@ -263,6 +265,7 @@
 
   <footer class="terminal-footer"><span id="footer-state">index —</span><a class="sponsor-link" href="https://www.quicknode.com/" target="_blank" rel="noopener noreferrer">Powered by Quicknode</a><span>READ ONLY · <a class="source-link" href="https://github.com/wock9000/robinhoodpools#license" target="_blank" rel="noopener noreferrer" title="Copyright 2026 RobinhoodPools contributors · AGPL-3.0-only · no warranty · corresponding source">SOURCE</a></span></footer>
   <div id="copy-status" class="sr-only" role="status" aria-live="polite"></div>
+  <script src="/static/watchlist_shared.js" defer></script>
   <script src="/static/lp_terminal.js" defer></script>
 </body>
 </html>
